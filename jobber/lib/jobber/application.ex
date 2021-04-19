@@ -6,9 +6,17 @@ defmodule Jobber.Application do
   use Application
 
   def start(_type, _args) do
+    job_runner_config = [
+      strategy: :one_for_one,
+      max_seconds: 30,
+      name: Jobber.JobRunner
+    ]
+
     children = [
       # Starts a worker by calling: Jobber.Worker.start_link(arg)
       # {Jobber.Worker, arg}
+      {Registry, keys: :unique, name: Jobber.JobRegistry},
+      {DynamicSupervisor, job_runner_config}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

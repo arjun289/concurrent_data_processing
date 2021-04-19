@@ -9,6 +9,7 @@ defmodule Sender.Application do
     children = [
       # Starts a worker by calling: Sender.Worker.start_link(arg)
       # {Sender.Worker, arg}
+      {DynamicSupervisor, strategy: :one_for_one, name: Jobber.JobRunner}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
