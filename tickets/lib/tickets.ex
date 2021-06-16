@@ -6,16 +6,16 @@ defmodule Tickets do
     %{id: "3", email: "baz@email.com"}
     ]
 
-  def tickets_available?("cinema") do
+  def tickets_available?("none") do
     Process.sleep(Enum.random(100..200))
-    true
-    # false
+    # true
+    false
   end
 
   def tickets_available?(_event) do
     Process.sleep(Enum.random(100..200))
-    # true
-    false
+    true
+    # false
   end
 
   def create_ticket(_user, _event) do

@@ -19,6 +19,11 @@ defmodule BookingsPipeline do
         default: [
           concurrency: System.schedulers_online() * 2
         ]
+      ],
+      batchers: [
+        cinema: [],
+        musical: [],
+        default: []
       ]
     ]
 
@@ -26,16 +31,25 @@ defmodule BookingsPipeline do
   end
 
   def handle_message(_processor, message, _context) do
-    %{data: %{event: event, user: user}} = message
+    %{data: %{event: event}} = message
 
     if Tickets.tickets_available?(event) do
-      Tickets.create_ticket(user, event)
-      Tickets.send_email(user)
+      parse_by_batch(message)
     else
-      Broadway.Message.failed(message, "booking-closed")
+      IO.inspect(event, label: "event")
+      Broadway.Message.failed(message, "bookings-closed")
     end
+  end
 
-    IO.inspect(message, label: "Message")
+  defp parse_by_batch(message) do
+    case message do
+      %{data: %{event: "cinema"}} = message ->
+        Broadway.Message.put_batcher(message, :cinema)
+      %{data: %{event: "musical"}} = message ->
+        Broadway.Message.put_batcher(message, :musical)
+      message ->
+        message
+    end
   end
 
   def prepare_messages(messages, _context) do
@@ -56,8 +70,20 @@ defmodule BookingsPipeline do
     end)
   end
 
-  def handle_failed(messages, _context) do
+  def handle_batch(_batcher, messages, batch_info, _context) do
+    IO.inspect(batch_info, label: "#{inspect(self())} Batch")
+    messages
+  end
 
+  def handle_failed(messages, _context) do
+    IO.inspect(messages, label: "Failed messages")
+
+    Enum.map(messages, fn
+      %{status: {:failed, "bookings-closed"}} = message ->
+        Broadway.Message.configure_ack(message, on_failure: :reject)
+      message ->
+        message
+    end)
   end
 
 end
